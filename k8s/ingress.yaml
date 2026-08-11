@@ -12,16 +12,16 @@ spec:
  
   tls:
   - hosts:
-    - app.lucktales.in
+    - devops.lucktales.in
     secretName: flask-tls
  
   rules:
-  - host: app.lucktales.in
+  - host: devops.lucktales.in
     http:
       paths:
       - path: /
         pathType: Prefix
-        backend:
+        backend:         
           service:
             name: flask-service
             port:
