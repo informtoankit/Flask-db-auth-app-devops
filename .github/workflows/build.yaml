@@ -1,0 +1,72 @@
+name: Build and Deploy Flask App to EKS
+ 
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+   
+jobs:
+  build-and-deploy:
+    name: Build Docker image and Deploy to EKS
+    runs-on: ubuntu-latest
+ 
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+     
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+ 
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-2
+     
+      - name: Update kubeconfig for EKS
+        run: aws eks update-kubeconfig --region us-east-2 --name flask-eks-cluster
+ 
+      - name: Test Kubernetes Connection
+        run: kubectl get nodes
+ 
+      - name: SonarQube Scan
+        uses: sonarsource/sonarqube-scan-action@v5
+        with:
+          projectBaseDir: .
+          args: >
+            -Dsonar.projectKey=Flask-Db-Auth-App
+            -Dsonar.sources=.
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+ 
+ 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+ 
+      - name: Login to DockerHub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+ 
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ secrets.DOCKER_USERNAME }}/flask-db-auth-app:latest
+ 
+      - name: Trivy Docker Image Scan for Vulnerabilities
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: ${{ secrets.DOCKER_USERNAME }}/flask-db-auth-app:latest
+          format: 'table'
+          severity: 'CRITICAL,HIGH'
+        env:
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
