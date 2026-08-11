@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: flask-app
-        image: ankitsde10/flask-auth-db-app:latest
+        image: ankitsde10/flask-db-auth-app:latest
         ports:
         - containerPort: 5000
         env:

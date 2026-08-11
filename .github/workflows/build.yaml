@@ -70,3 +70,9 @@ jobs:
         env:
           DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
           DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Deploy to EKS
+        run: |
+          kubectl create namespace flask --dry-run=client -o yaml | kubectl apply -f -
+          kubectl apply -f k8s/ -n flask
+          kubectl rollout status deployment/flask-app -n flask
